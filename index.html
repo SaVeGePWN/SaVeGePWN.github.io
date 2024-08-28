@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced YouTube Viewer</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Advanced YouTube Viewer</h1>
+            <div class="search-bar">
+                <input type="text" id="search-query" placeholder="Search YouTube videos...">
+                <button onclick="searchVideos()">Search</button>
+            </div>
+        </header>
+
+        <main>
+            <div class="video-list" id="video-list"></div>
+
+            <div class="video-content" id="video-content">
+                <div class="embed-container">
+                    <iframe id="video-iframe" src="" frameborder="0" allowfullscreen></iframe>
+                </div>
+                <div class="video-details" id="video-details"></div>
+                <div class="comments-section" id="comments-section">
+                    <h3>Comments</h3>
+                    <div id="comments"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="main.js"></script>
+</body>
+</html>
