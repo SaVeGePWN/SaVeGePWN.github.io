@@ -1,5 +1,6 @@
-// Replace with your YouTube API Key
 const API_KEY = 'AIzaSyDN9KZArEuVEMauzhYEZWg6yKibCHA9ezc';
+
+const PROXY_URL = 'https://piped.kavin.rocks/embed/';
 
 function searchVideos() {
     const query = document.getElementById('search-query').value;
@@ -36,11 +37,9 @@ function searchVideos() {
 
 function loadVideo(videoId) {
     const iframe = document.getElementById('video-iframe');
-    iframe.src = `https://www.youtube.com/embed/${videoId}`;
+    iframe.src = `${PROXY_URL}${videoId}`;
 
-    // Fetch video details
     fetchVideoDetails(videoId);
-    // Fetch comments
     fetchComments(videoId);
 
     document.querySelector('.embed-container').style.display = 'block';
@@ -67,7 +66,7 @@ function fetchVideoDetails(videoId) {
 }
 
 function fetchComments(videoId) {
-    const url = `https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&videoId=${videoId}&key=${API_KEY}&maxResults=70`;
+    const url = `https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&videoId=${videoId}&key=${API_KEY}&maxResults=10`;
 
     fetch(url)
         .then(response => response.json())
