@@ -14,28 +14,93 @@
     canvas {
       display: block;
     }
+    #mobile-controls {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1000;
+      display: none;
+    }
+    .joystick {
+      position: fixed;
+      width: 150px;
+      height: 150px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      pointer-events: all;
+      touch-action: none;
+    }
+    .joystick-thumb {
+      position: absolute;
+      width: 100px;
+      height: 100px;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      left: 25px;
+      top: 25px;
+    }
+    #left-joystick {
+      bottom: 120px;
+      left: 120px;
+    }
+    #right-joystick {
+      bottom: 120px;
+      right: 120px;
+    }
+    .mobile-btn {
+      position: fixed;
+      pointer-events: all;
+      background: rgba(0, 0, 0, 0.5);
+      color: #fff;
+      border: none;
+      border-radius: 15px;
+      padding: 20px 15px;
+      font-size: 20px;
+      touch-action: manipulation;
+    }
+    #flashlight-btn {
+      bottom: 160px;
+      left: 420px;
+    }
+    #shoot-btn {
+      bottom: 260px;
+      right: 360px;
+    }
+    #enter-btn,
+    #respawn-btn,
+    #dialogue-btn {
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: none;
+    }
   </style>
 </head>
 <body>
   <canvas id="game"></canvas>
+  <div id="mobile-controls">
+    <div id="left-joystick" class="joystick">
+      <div id="left-joystick-thumb" class="joystick-thumb"></div>
+    </div>
+    <div id="right-joystick" class="joystick">
+      <div id="right-joystick-thumb" class="joystick-thumb"></div>
+    </div>
+    <button id="flashlight-btn" class="mobile-btn">Flash</button>
+    <button id="shoot-btn" class="mobile-btn">Shoot</button>
+    <button id="enter-btn" class="mobile-btn">Enter Game</button>
+    <button id="respawn-btn" class="mobile-btn">Respawn</button>
+    <button id="dialogue-btn" class="mobile-btn">Continue Dialogue</button>
+  </div>
   <script>
-    const canvas = document.getElementById("game"),
-      ctx = canvas.getContext("2d");
-    let cw = canvas.width = window.innerWidth,
-      ch = canvas.height = window.innerHeight;
-    let gameState = "menu",
-      score = 0,
-      wave = 0,
-      waveDelay = 3000,
-      lastWaveTime = 0,
-      damageEffect = 0,
-      shakeIntensity = 0;
-    const zoom = 1.9,
-      bloomCanvas = document.createElement("canvas"),
-      bloomCtx = bloomCanvas.getContext("2d"),
-      rtxCanvas = document.createElement("canvas"),
-      rtxCtx = rtxCanvas.getContext("2d"),
-      camera = { x: 0, y: 0 };
+    const mobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+    if (mobile) { document.getElementById("mobile-controls").style.display = "block"; }
+    const canvas = document.getElementById("game"), ctx = canvas.getContext("2d");
+    let cw = canvas.width = window.innerWidth, ch = canvas.height = window.innerHeight;
+    let gameState = "menu", score = 0, wave = 0, waveDelay = 3000, lastWaveTime = 0, damageEffect = 0, shakeIntensity = 0;
+    const zoom = 1.9, bloomCanvas = document.createElement("canvas"), bloomCtx = bloomCanvas.getContext("2d"), rtxCanvas = document.createElement("canvas"), rtxCtx = rtxCanvas.getContext("2d"), camera = { x: 0, y: 0 };
     const dialogueLines = [
       "I woke up here and don’t remember how I got into this mess...",
       "These hallways go on forever, and it feels like they're hiding something.",
@@ -47,186 +112,65 @@
     const characterImage = new Image();
     characterImage.src = "assets/wtfChat.png";
     const lerp = (a, b, t) => a + (b - a) * t;
-    window.addEventListener("resize", () => {
-      cw = canvas.width = window.innerWidth;
-      ch = canvas.height = window.innerHeight;
-    });
-    const mouse = { x: cw / 2, y: ch / 2 },
-      keys = { w: false, a: false, s: false, d: false };
+    window.addEventListener("resize", () => { cw = canvas.width = window.innerWidth; ch = canvas.height = window.innerHeight; });
+    const mouse = { x: cw / 2, y: ch / 2 }, keys = { w: false, a: false, s: false, d: false };
     document.addEventListener("keydown", e => {
-      if (gameState === "menu" && e.key === "Enter") {
-        startGame();
-        bgMusic.play();
-        gameState = "dialogue";
-        dialogueIndex = 0;
-        dialogueSFX.currentTime = 0;
-        dialogueSFX.play();
-      } else if (gameState === "dialogue" && e.key === "Enter") {
-        dialogueIndex++;
-        if (dialogueIndex >= dialogueLines.length) {
-          gameState = "tutorial";
-        } else {
-          dialogueSFX.currentTime = 0;
-          dialogueSFX.play();
-        }
-      } else if (gameState === "tutorial" && e.key === "Enter") {
-        gameState = "playing";
-      } else if (gameState === "gameover" && e.key === "Enter") {
-        startGame();
-      } else {
-        if (e.key === "f") flash = !flash;
-        if (e.key === " " && gameState === "playing") player.shoot();
-        keys[e.key.toLowerCase()] = true;
-      }
+      if (gameState === "menu" && e.key === "Enter") { startGame(); bgMusic.play(); gameState = "dialogue"; dialogueIndex = 0; dialogueSFX.currentTime = 0; dialogueSFX.play(); }
+      else if (gameState === "dialogue" && e.key === "Enter") { dialogueIndex++; if (dialogueIndex >= dialogueLines.length) { gameState = "tutorial"; } else { dialogueSFX.currentTime = 0; dialogueSFX.play(); } }
+      else if (gameState === "tutorial" && e.key === "Enter") { gameState = "playing"; }
+      else if (gameState === "gameover" && e.key === "Enter") { startGame(); }
+      else { if (e.key === "f") flash = !flash; if (e.key === " " && gameState === "playing") player.shoot(); keys[e.key.toLowerCase()] = true; }
     });
     document.addEventListener("keyup", e => { keys[e.key.toLowerCase()] = false; });
-    document.addEventListener("mousemove", e => { mouse.x = e.clientX, mouse.y = e.clientY; });
+    document.addEventListener("mousemove", e => { mouse.x = e.clientX; mouse.y = e.clientY; });
     document.addEventListener("mousedown", () => { if (gameState === "playing") player.shoot(); });
     const bgMusic = new Audio("assets/ambient.mp3");
-    bgMusic.loop = true;
-    bgMusic.volume = 1;
-    const ambientSounds = [
-      new Audio("assets/ambient2.mp3"),
-      new Audio("assets/ambient3.mp3"),
-      new Audio("assets/ambient4.mp3"),
-      new Audio("assets/ambient5.mp3")
-    ];
+    bgMusic.loop = true; bgMusic.volume = 1;
+    const ambientSounds = [new Audio("assets/ambient2.mp3"), new Audio("assets/ambient3.mp3"), new Audio("assets/ambient4.mp3"), new Audio("assets/ambient5.mp3")];
     ambientSounds.forEach(sound => sound.volume = 1);
-    const ambP = () => {
-      if (Math.random() > 0.7) {
-        const sound = ambientSounds[Math.floor(Math.random() * ambientSounds.length)];
-        if (sound.paused) {
-          sound.play();
-          sound.onended = () => setTimeout(ambP, Math.random() * 30000 + 20000);
-          return;
-        }
-      }
-      setTimeout(ambP, Math.random() * 30000 + 10000);
-    };
-
+    const ambP = () => { if (Math.random() > 0.7) { const sound = ambientSounds[Math.floor(Math.random() * ambientSounds.length)]; if (sound.paused) { sound.play(); sound.onended = () => setTimeout(ambP, Math.random() * 30000 + 20000); return; } } setTimeout(ambP, Math.random() * 30000 + 10000); };
     ambP();
-
-    const shootSFX = new Audio("assets/gunShot.mp3"),
-      hitSFX = new Audio("assets/hit.mp3"),
-      walkSFX = new Audio("assets/walk.mp3"),
-      damageSFX = new Audio("assets/damage.mp3"),
-      heartbeatSFX = new Audio("assets/heartBeat.mp3"),
-      dialogueSFX = new Audio("assets/blip.mp3");
-    dialogueSFX.volume = 0.7;
-    heartbeatSFX.loop = true;
-    heartbeatSFX.volume = 0.5;
+    const shootSFX = new Audio("assets/gunShot.mp3"), hitSFX = new Audio("assets/hit.mp3"), walkSFX = new Audio("assets/walk.mp3"), damageSFX = new Audio("assets/damage.mp3"), heartbeatSFX = new Audio("assets/heartBeat.mp3"), dialogueSFX = new Audio("assets/blip.mp3");
+    dialogueSFX.volume = 0.7; heartbeatSFX.loop = true; heartbeatSFX.volume = 0.5;
     let flash = false;
-    const segInter = (a, b, c, d) => {
-      const r = { x: b.x - a.x, y: b.y - a.y },
-        s = { x: d.x - c.x, y: d.y - c.y },
-        denom = r.x * s.y - r.y * s.x;
-      if (denom === 0) return null;
-      const u = ((c.x - a.x) * r.y - (c.y - a.y) * r.x) / denom,
-        t = ((c.x - a.x) * s.y - (c.y - a.y) * s.x) / denom;
-      return (t >= 0 && t <= 1 && u >= 0 && u <= 1) ? { x: a.x + t * r.x, y: a.y + t * r.y } : null;
-    };
-    const hasLOS = (a, b, segments) => {
-      for (const seg of segments)
-        if (segInter(a, b, seg.a, seg.b)) return false;
-      return true;
-    };
+    const segInter = (a, b, c, d) => { const r = { x: b.x - a.x, y: b.y - a.y }, s = { x: d.x - c.x, y: d.y - c.y }, denom = r.x * s.y - r.y * s.x; if (denom === 0) return null; const u = ((c.x - a.x) * s.y - (c.y - a.y) * s.x) / denom, t = ((c.x - a.x) * r.y - (c.y - a.y) * r.x) / denom; return (t >= 0 && t <= 1 && u >= 0 && u <= 1) ? { x: a.x + t * r.x, y: a.y + t * r.y } : null; };
+    const hasLOS = (a, b, segments) => { for (const seg of segments) if (segInter(a, b, seg.a, seg.b)) return false; return true; };
     class Particle {
-      constructor(x, y, vx, vy, life) {
-        this.x = x, this.y = y, this.vx = vx, this.vy = vy, this.life = life, this.maxLife = life;
-      }
-      update() { this.x += this.vx, this.y += this.vy, this.life--; }
-      draw() {
-        ctx.fillStyle = `rgba(200,200,200,${this.life / this.maxLife * 0.15})`;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, Math.random() * 2 + 1, 0, Math.PI * 2);
-        ctx.fill();
-      }
+      constructor(x, y, vx, vy, life) { this.x = x; this.y = y; this.vx = vx; this.vy = vy; this.life = life; this.maxLife = life; }
+      update() { this.x += this.vx; this.y += this.vy; this.life--; }
+      draw() { ctx.fillStyle = `rgba(200,200,200,${this.life / this.maxLife * 0.15})`; ctx.beginPath(); ctx.arc(this.x, this.y, Math.random() * 2 + 1, 0, Math.PI * 2); ctx.fill(); }
     }
     class ImpactParticle {
-      constructor(x, y, vx, vy, life) {
-        this.x = x, this.y = y, this.vx = vx, this.vy = vy, this.life = life, this.maxLife = life;
-      }
-      update() {
-        this.vy += 0.2, this.vx *= 0.98, this.vy *= 0.98,
-          this.x += this.vx, this.y += this.vy, this.life--;
-      }
-      draw() {
-        ctx.fillStyle = `rgba(180,0,0,${this.life / this.maxLife})`;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, Math.random() * 3 + 2, 0, Math.PI * 2);
-        ctx.fill();
-      }
+      constructor(x, y, vx, vy, life) { this.x = x; this.y = y; this.vx = vx; this.vy = vy; this.life = life; this.maxLife = life; }
+      update() { this.vy += 0.2; this.vx *= 0.98; this.vy *= 0.98; this.x += this.vx; this.y += this.vy; this.life--; }
+      draw() { ctx.fillStyle = `rgba(180,0,0,${this.life / this.maxLife})`; ctx.beginPath(); ctx.arc(this.x, this.y, Math.random() * 3 + 2, 0, Math.PI * 2); ctx.fill(); }
     }
     class MuzzleFlash {
-      constructor(x, y, angle) {
-        this.x = x, this.y = y, this.angle = angle, this.life = 6;
-      }
+      constructor(x, y, angle) { this.x = x; this.y = y; this.angle = angle; this.life = 6; }
       update() { this.life--; }
-      draw() {
-        ctx.save();
-        ctx.translate(this.x, this.y);
-        ctx.rotate(this.angle);
-        ctx.globalAlpha = this.life / 6;
-        ctx.fillStyle = "#ffba00";
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(20, 5);
-        ctx.lineTo(25, 0);
-        ctx.lineTo(20, -5);
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
-      }
+      draw() { ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.angle); ctx.globalAlpha = this.life / 6; ctx.fillStyle = "#ffba00"; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(20, 5); ctx.lineTo(25, 0); ctx.lineTo(20, -5); ctx.closePath(); ctx.fill(); ctx.restore(); }
     }
     const muzzleFlashes = [];
-    const fogParticles = [],
-      impactParticles = [],
-      soundEvents = [];
+    const fogParticles = [], impactParticles = [], soundEvents = [];
     class Player {
-      constructor(x, y) {
-        this.x = x;
-        this.y = y;
-        this.radius = 16;
-        this.speed = 2.5;
-        this.dir = 0;
-        this.lastShot = 0;
-        this.cd = 300;
-        this.health = 100;
-        this.vx = 0;
-        this.vy = 0;
-        this.ammo = 20;
-      }
+      constructor(x, y) { this.x = x; this.y = y; this.radius = 16; this.speed = 2.5; this.dir = 0; this.lastShot = 0; this.cd = 300; this.health = 100; this.vx = 0; this.vy = 0; this.ammo = 20; }
       setPosition(x, y) { this.x = x; this.y = y; }
       update() {
         if (gameState !== "playing") return;
-        const oldX = this.x,
-          oldY = this.y;
-        let nx = this.x,
-          ny = this.y;
+        const oldX = this.x, oldY = this.y;
+        let nx = this.x, ny = this.y;
         if (keys.w) ny -= this.speed;
         if (keys.s) ny += this.speed;
         if (keys.a) nx -= this.speed;
         if (keys.d) nx += this.speed;
-        if ((keys.w || keys.s || keys.a || keys.d) && walkSFX.paused) {
-          walkSFX.loop = true;
-          walkSFX.play();
-        }
-        if (!keys.w && !keys.s && !keys.a && !keys.d) {
-          if (!walkSFX.paused) {
-            walkSFX.pause();
-            walkSFX.currentTime = 0;
-          }
-        }
-        const dx = nx - this.x,
-          dy = ny - this.y;
-        this.x += dx;
-        this.y += dy;
+        if ((keys.w || keys.s || keys.a || keys.d) && walkSFX.paused) { walkSFX.loop = true; walkSFX.play(); }
+        if (!keys.w && !keys.s && !keys.a && !keys.d) { if (!walkSFX.paused) { walkSFX.pause(); walkSFX.currentTime = 0; } }
+        const dx = nx - this.x, dy = ny - this.y;
+        this.x += dx; this.y += dy;
         resolveCollision(this);
-        this.vx = this.x - oldX;
-        this.vy = this.y - oldY;
-        const mx = mouse.x - cw / 2,
-          my = mouse.y - ch / 2;
-        this.dir = Math.atan2(my, mx);
+        this.vx = this.x - oldX; this.vy = this.y - oldY;
+        const mx = mobile ? rightJoystick.delta.x : mouse.x - cw / 2, my = mobile ? rightJoystick.delta.y : mouse.y - ch / 2;
+        if (mx !== 0 || my !== 0) this.dir = Math.atan2(my, mx);
       }
       draw() {
         ctx.save();
@@ -293,272 +237,112 @@
       shoot() {
         const n = Date.now();
         if (n - this.lastShot >= this.cd && this.ammo > 0) {
-          const ox = Math.cos(this.dir) * (this.radius + 10),
-            oy = Math.sin(this.dir) * (this.radius + 10);
+          const ox = Math.cos(this.dir) * (this.radius + 10), oy = Math.sin(this.dir) * (this.radius + 10);
           bullets.push(new Bullet(this.x + ox, this.y + oy, this.dir));
-          this.lastShot = n;
-          this.ammo--;
-          shootSFX.currentTime = 0;
-          shootSFX.play();
+          this.lastShot = n; this.ammo--;
+          shootSFX.currentTime = 0; shootSFX.play();
           soundEvents.push({ x: this.x, y: this.y, time: n });
           muzzleFlashes.push(new MuzzleFlash(this.x + ox, this.y + oy, this.dir));
         }
       }
-      origin() {
-        return {
-          x: this.x + Math.cos(this.dir) * (this.radius + 10),
-          y: this.y + Math.sin(this.dir) * (this.radius + 10)
-        };
-      }
+      origin() { return { x: this.x + Math.cos(this.dir) * (this.radius + 10), y: this.y + Math.sin(this.dir) * (this.radius + 10) }; }
     }
     class Monster {
-      constructor(x, y, speedMult = 1) {
-        this.x = x, this.y = y, this.radius = 14,
-          this.speed = 1.8 * speedMult * (1 + wave * 0.05),
-          this.health = 50 + wave * 10,
-          this.lastAttack = 0,
-          this.lastPathCalc = 0,
-          this.path = [];
-      }
+      constructor(x, y, speedMult = 1) { this.x = x; this.y = y; this.radius = 14; this.speed = 1.8 * speedMult * (1 + wave * 0.05); this.health = 50 + wave * 10; this.lastAttack = 0; this.lastPathCalc = 0; this.path = []; }
       update() {
         let target = { x: player.x, y: player.y };
         if (soundEvents.length) {
           const recent = soundEvents.filter(e => Date.now() - e.time < 3000);
           const audible = recent.filter(e => Math.hypot(this.x - e.x, this.y - e.y) < 300);
-          if (audible.length) {
-            target = audible.reduce((a, b) =>
-              Math.hypot(this.x - a.x, this.y - a.y) < Math.hypot(this.x - b.x, this.y - b.y) ? a : b, audible[0]);
-          }
+          if (audible.length) target = audible.reduce((a, b) => Math.hypot(this.x - a.x, this.y - a.y) < Math.hypot(this.x - b.x, this.y - b.y) ? a : b, audible[0]);
         }
-        let desired_dx = 0,
-          desired_dy = 0;
-        const dx = target.x - this.x,
-          dy = target.y - this.y,
-          dist = Math.hypot(dx, dy);
+        let desired_dx = 0, desired_dy = 0;
+        const dx = target.x - this.x, dy = target.y - this.y, dist = Math.hypot(dx, dy);
         if (hasLOS({ x: this.x, y: this.y }, target, maze.segments())) {
-          if (dist > 0) {
-            desired_dx = (dx / dist) * this.speed;
-            desired_dy = (dy / dist) * this.speed;
-          }
+          if (dist > 0) { desired_dx = (dx / dist) * this.speed; desired_dy = (dy / dist) * this.speed; }
         } else {
-          const cell = maze.cellAt(this.x, this.y),
-            targetCell = maze.cellAt(target.x, target.y);
+          const cell = maze.cellAt(this.x, this.y), targetCell = maze.cellAt(target.x, target.y);
           if (cell && targetCell) {
-            if (Date.now() - this.lastPathCalc > 500) {
-              this.path = maze.findPath(cell, targetCell);
-              this.lastPathCalc = Date.now();
-            }
+            if (Date.now() - this.lastPathCalc > 500) { this.path = maze.findPath(cell, targetCell); this.lastPathCalc = Date.now(); }
             if (this.path && this.path.length) {
-              const next = this.path[0],
-                cx = next.x * maze.cell + maze.cell / 2,
-                cy = next.y * maze.cell + maze.cell / 2,
-                pdx = cx - this.x,
-                pdy = cy - this.y,
-                pdist = Math.hypot(pdx, pdy);
-              if (pdist > 0) {
-                desired_dx = (pdx / pdist) * this.speed;
-                desired_dy = (pdy / pdist) * this.speed;
-              }
+              const next = this.path[0], cx = next.x * maze.cell + maze.cell / 2, cy = next.y * maze.cell + maze.cell / 2, pdx = cx - this.x, pdy = cy - this.y, pdist = Math.hypot(pdx, pdy);
+              if (pdist > 0) { desired_dx = (pdx / pdist) * this.speed; desired_dy = (pdy / pdist) * this.speed; }
               if (pdist < 5) this.path.shift();
             }
           }
         }
-        this.x += desired_dx;
-        this.y += desired_dy;
-        resolveCollision(this);
-        for (let other of monsters) {
-          if (other !== this) {
-            const d = Math.hypot(this.x - other.x, this.y - other.y);
-            if (d < this.radius + other.radius) {
-              const overlap = (this.radius + other.radius - d) / 2,
-                nx = (this.x - other.x) / d,
-                ny = (this.y - other.y) / d;
-              this.x += nx * overlap;
-              this.y += ny * overlap;
-            }
-          }
-        }
+        this.x += desired_dx; this.y += desired_dy; resolveCollision(this);
+        for (let other of monsters) { if (other !== this) { const d = Math.hypot(this.x - other.x, this.y - other.y); if (d < this.radius + other.radius) { const overlap = (this.radius + other.radius - d) / 2, nx = (this.x - other.x) / d, ny = (this.y - other.y) / d; this.x += nx * overlap; this.y += ny * overlap; } } }
         if (Math.hypot(player.x - this.x, player.y - this.y) < player.radius + this.radius + 10) {
-          if (Date.now() - this.lastAttack >= 1000) {
-            player.health -= 10;
-            damageEffect = 1;
-            shakeIntensity = 10;
-            this.lastAttack = Date.now();
-            damageSFX.currentTime = 0;
-            damageSFX.play();
-            for (let i = 0; i < 10; i++)
-              impactParticles.push(new ImpactParticle(player.x, player.y,
-                (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, 30));
-          }
+          if (Date.now() - this.lastAttack >= 1000) { player.health -= 10; damageEffect = 1; shakeIntensity = 10; this.lastAttack = Date.now(); damageSFX.currentTime = 0; damageSFX.play(); for (let i = 0; i < 10; i++) impactParticles.push(new ImpactParticle(player.x, player.y, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, 30)); }
         }
       }
       draw() {
         if (!flash) return;
-        const origin = player.origin(),
-          dx = this.x - origin.x,
-          dy = this.y - origin.y,
-          dist = Math.hypot(dx, dy);
+        const origin = player.origin(), dx = this.x - origin.x, dy = this.y - origin.y, dist = Math.hypot(dx, dy);
         if (dist > 400) return;
-        const beamAngle = Math.atan2(dy, dx),
-          diffAngle = Math.abs((((beamAngle - player.dir) + Math.PI) % (2 * Math.PI)) - Math.PI);
+        const beamAngle = Math.atan2(dy, dx), diffAngle = Math.abs((((beamAngle - player.dir) + Math.PI) % (2 * Math.PI)) - Math.PI);
         if (diffAngle > 0.3) return;
         if (!hasLOS(origin, { x: this.x, y: this.y }, maze.segments())) return;
-        ctx.save();
-        ctx.translate(this.x, this.y);
-        ctx.rotate(Math.sin(Date.now() / 500) * 0.2);
-        const spikes = 10,
-          step = Math.PI * 2 / spikes,
-          outer = this.radius,
-          inner = this.radius * 0.6;
-        ctx.beginPath();
+        ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(Math.sin(Date.now() / 500) * 0.2);
+        const spikes = 10, step = Math.PI * 2 / spikes, outer = this.radius, inner = this.radius * 0.6;
+        let a = 0; ctx.beginPath();
         for (let i = 0; i < spikes; i++) {
-          let a = i * step,
-            x = Math.cos(a) * outer,
-            y = Math.sin(a) * outer;
-          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-          a += step / 2;
-          x = Math.cos(a) * inner;
-          y = Math.sin(a) * inner;
-          ctx.lineTo(x, y);
+          let x = Math.cos(a) * outer, y = Math.sin(a) * outer;
+          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); a += step / 2;
+          x = Math.cos(a) * inner; y = Math.sin(a) * inner; ctx.lineTo(x, y); a += step / 2;
         }
         ctx.closePath();
         let grad = ctx.createRadialGradient(0, 0, this.radius * 0.3, 0, 0, this.radius);
-        grad.addColorStop(0, "#400");
-        grad.addColorStop(1, "#000");
-        ctx.fillStyle = grad;
-        ctx.fill();
-        ctx.fillStyle = "#f00";
-        ctx.beginPath();
-        ctx.arc(-this.radius / 3, -this.radius / 4, this.radius / 6, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(this.radius / 3, -this.radius / 4, this.radius / 6, 0, Math.PI * 2);
-        ctx.fill();
+        grad.addColorStop(0, "#400"); grad.addColorStop(1, "#000"); ctx.fillStyle = grad; ctx.fill();
+        ctx.fillStyle = "#f00"; ctx.beginPath(); ctx.arc(-this.radius / 3, -this.radius / 4, this.radius / 6, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(this.radius / 3, -this.radius / 4, this.radius / 6, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
-        ctx.fillStyle = "#f00";
-        ctx.fillRect(this.x - 16, this.y - this.radius - 20, 32, 4);
-        ctx.fillStyle = "#0f0";
-        ctx.fillRect(this.x - 16, this.y - this.radius - 20, 32 * (this.health / (50 + wave * 10)), 4);
+        ctx.fillStyle = "#f00"; ctx.fillRect(this.x - 16, this.y - this.radius - 20, 32, 4);
+        ctx.fillStyle = "#0f0"; ctx.fillRect(this.x - 16, this.y - this.radius - 20, 32 * (this.health / (50 + wave * 10)), 4);
       }
     }
     class Bullet {
-      constructor(x, y, a) {
-        this.x = x;
-        this.y = y;
-        this.lastX = x;
-        this.lastY = y;
-        this.vx = Math.cos(a) * 15;
-        this.vy = Math.sin(a) * 15;
-        this.radius = 3;
-        this.life = 90;
-      }
+      constructor(x, y, a) { this.x = x; this.y = y; this.lastX = x; this.lastY = y; this.vx = Math.cos(a) * 15; this.vy = Math.sin(a) * 15; this.radius = 3; this.life = 90; }
       update() {
-        this.lastX = this.x, this.lastY = this.y;
-        this.x += this.vx;
-        this.y += this.vy;
-        if (maze.collidePoint(this.x, this.y))
-          this.life = 0;
-        monsters.forEach(m => {
-          if (Math.hypot(this.x - m.x, this.y - m.y) < this.radius + m.radius) {
-            m.health -= 20;
-            this.life = 0;
-            hitSFX.currentTime = 0;
-            hitSFX.play();
-            for (let i = 0; i < 12; i++)
-              impactParticles.push(new ImpactParticle(this.x, this.y,
-                (Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4, 30));
-          }
-        });
+        this.lastX = this.x; this.lastY = this.y; this.x += this.vx; this.y += this.vy;
+        if (maze.collidePoint(this.x, this.y)) this.life = 0;
+        monsters.forEach(m => { if (Math.hypot(this.x - m.x, this.y - m.y) < this.radius + m.radius) { m.health -= 20; this.life = 0; hitSFX.currentTime = 0; hitSFX.play(); for (let i = 0; i < 12; i++) impactParticles.push(new ImpactParticle(this.x, this.y, (Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4, 30)); } });
         this.life--;
       }
-      draw() {
-        ctx.strokeStyle = "#ff0";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(this.lastX, this.lastY);
-        ctx.lineTo(this.x, this.y);
-        ctx.stroke();
-        ctx.fillStyle = "#ff9900";
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.fill();
-      }
+      draw() { ctx.strokeStyle = "#ff0"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(this.lastX, this.lastY); ctx.lineTo(this.x, this.y); ctx.stroke(); ctx.fillStyle = "#ff9900"; ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fill(); }
     }
     class Wall {
-      constructor(x, y, w, h) { this.x = x, this.y = y, this.w = w, this.h = h; }
+      constructor(x, y, w, h) { this.x = x; this.y = y; this.w = w; this.h = h; }
       draw() {
-        const cx = this.x + this.w / 2,
-          cy = this.y + this.h / 2,
-          dx = cx - player.x,
-          dy = cy - player.y,
-          d = Math.hypot(dx, dy),
-          i = Math.max(0, 1 - d / 800);
-        ctx.fillStyle = `rgba(30,30,30,${i})`;
-        ctx.fillRect(this.x, this.y, this.w, this.h);
+        const cx = this.x + this.w / 2, cy = this.y + this.h / 2, dx = cx - player.x, dy = cy - player.y, d = Math.hypot(dx, dy), i = Math.max(0, 1 - d / 800);
+        ctx.fillStyle = `rgba(30,30,30,${i})`; ctx.fillRect(this.x, this.y, this.w, this.h);
       }
-      segments() {
-        return [{
-          a: { x: this.x, y: this.y },
-          b: { x: this.x + this.w, y: this.y }
-        },
-        {
-          a: { x: this.x + this.w, y: this.y },
-          b: { x: this.x + this.w, y: this.y + this.h }
-        },
-        {
-          a: { x: this.x + this.w, y: this.y + this.h },
-          b: { x: this.x, y: this.y + this.h }
-        },
-        {
-          a: { x: this.x, y: this.y + this.h },
-          b: { x: this.x, y: this.y }
-        }
-        ];
-      }
+      segments() { return [{ a: { x: this.x, y: this.y }, b: { x: this.x + this.w, y: this.y } }, { a: { x: this.x + this.w, y: this.y }, b: { x: this.x + this.w, y: this.y + this.h } }, { a: { x: this.x + this.w, y: this.y + this.h }, b: { x: this.x, y: this.y + this.h } }, { a: { x: this.x, y: this.y + this.h }, b: { x: this.x, y: this.y } }]; }
     }
     class AmmoPickup {
       constructor(x, y) { this.x = x; this.y = y; this.radius = 12; }
       draw() {
-        ctx.save();
-        ctx.translate(this.x, this.y);
-        ctx.fillStyle = "#bbb";
-        ctx.beginPath();
-        ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = "#888";
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        ctx.restore();
+        ctx.save(); ctx.translate(this.x, this.y); ctx.fillStyle = "#bbb"; ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = "#888"; ctx.lineWidth = 2; ctx.stroke(); ctx.restore();
       }
     }
     class Maze {
-      constructor() {
-        this.walls = [];
-        this.cell = 150;
-        this.grid = [];
-      }
+      constructor() { this.walls = []; this.cell = 150; this.grid = []; }
       init() {
         this.walls = [];
         this.cols = Math.floor(cw / this.cell);
         this.rows = Math.floor(ch / this.cell);
-        this.grid = Array.from({ length: this.rows }, (_, j) =>
-          Array.from({ length: this.cols }, (_, i) => ({
-            x: i,
-            y: j,
-            visited: false,
-            walls: [true, true, true, true]
-          }))
-        );
+        this.grid = Array.from({ length: this.rows }, (_, j) => Array.from({ length: this.cols }, (_, i) => ({ x: i, y: j, visited: false, walls: [true, true, true, true] })));
         const stack = [];
         let current = this.grid[0][0];
         current.visited = true;
         do {
           const neighbors = [];
           const { x, y } = current;
-          y > 0 && !this.grid[y - 1][x].visited && neighbors.push({ cell: this.grid[y - 1][x], dir: 0 });
-          x < this.cols - 1 && !this.grid[y][x + 1].visited && neighbors.push({ cell: this.grid[y][x + 1], dir: 1 });
-          y < this.rows - 1 && !this.grid[y + 1][x].visited && neighbors.push({ cell: this.grid[y + 1][x], dir: 2 });
-          x > 0 && !this.grid[y][x - 1].visited && neighbors.push({ cell: this.grid[y][x - 1], dir: 3 });
+          if (y > 0 && !this.grid[y - 1][x].visited) neighbors.push({ cell: this.grid[y - 1][x], dir: 0 });
+          if (x < this.cols - 1 && !this.grid[y][x + 1].visited) neighbors.push({ cell: this.grid[y][x + 1], dir: 1 });
+          if (y < this.rows - 1 && !this.grid[y + 1][x].visited) neighbors.push({ cell: this.grid[y + 1][x], dir: 2 });
+          if (x > 0 && !this.grid[y][x - 1].visited) neighbors.push({ cell: this.grid[y][x - 1], dir: 3 });
           if (neighbors.length) {
             const next = neighbors[Math.floor(Math.random() * neighbors.length)];
             current.walls[next.dir] = false;
@@ -571,53 +355,34 @@
         const t = 24;
         for (let j = 0; j < this.rows; j++) {
           for (let i = 0; i < this.cols; i++) {
-            const cell = this.grid[j][i],
-              x = i * this.cell,
-              y = j * this.cell,
-              s = this.cell;
-            j === 0 && cell.walls[0] && this.walls.push(new Wall(x, y, s, t));
-            i === 0 && cell.walls[3] && this.walls.push(new Wall(x, y, t, s));
-            cell.walls[1] && this.walls.push(new Wall(x + s - t, y, t, s));
-            cell.walls[2] && this.walls.push(new Wall(x, y + s - t, s, t));
+            const cell = this.grid[j][i], x = i * this.cell, y = j * this.cell, s = this.cell;
+            if (j === 0 && cell.walls[0]) this.walls.push(new Wall(x, y, s, t));
+            if (i === 0 && cell.walls[3]) this.walls.push(new Wall(x, y, t, s));
+            if (cell.walls[1]) this.walls.push(new Wall(x + s - t, y, t, s));
+            if (cell.walls[2]) this.walls.push(new Wall(x, y + s - t, s, t));
           }
         }
       }
-      draw(vp) {
-        this.walls.forEach(w => {
-          if (w.x + w.w < vp.minX || w.x > vp.maxX || w.y + w.h < vp.minY || w.y > vp.maxY) return;
-          w.draw();
-        });
-      }
+      draw(vp) { this.walls.forEach(w => { if (w.x + w.w < vp.minX || w.x > vp.maxX || w.y + w.h < vp.minY || w.y > vp.maxY) return; w.draw(); }); }
       segments() { return this.walls.flatMap(w => w.segments()); }
       collideCircle(x, y, r) {
         for (let w of this.walls) {
-          const cx = Math.max(w.x, Math.min(x, w.x + w.w)),
-            cy = Math.max(w.y, Math.min(y, w.y + w.h)),
-            dx = x - cx,
-            dy = y - cy;
+          const cx = Math.max(w.x, Math.min(x, w.x + w.w)), cy = Math.max(w.y, Math.min(y, w.y + w.h)), dx = x - cx, dy = y - cy;
           if (dx * dx + dy * dy < r * r) return true;
         }
         return false;
       }
-      collidePoint(x, y) {
-        return this.walls.some(w => x >= w.x && x <= w.x + w.w && y >= w.y && y <= w.y + w.h);
-      }
+      collidePoint(x, y) { return this.walls.some(w => x >= w.x && x <= w.x + w.w && y >= w.y && y <= w.y + w.h); }
       spawn() { return [this.cell / 2, this.cell / 2]; }
-      cellAt(x, y) {
-        const i = Math.floor(x / this.cell),
-          j = Math.floor(y / this.cell);
-        return i >= 0 && j >= 0 && i < this.cols && j < this.rows ? this.grid[j][i] : null;
-      }
+      cellAt(x, y) { const i = Math.floor(x / this.cell), j = Math.floor(y / this.cell); return i >= 0 && j >= 0 && i < this.cols && j < this.rows ? this.grid[j][i] : null; }
       findPath(start, target) {
-        const queue = [{ cell: start, path: [] }],
-          visited = new Set([start.x + "," + start.y]);
+        const queue = [{ cell: start, path: [] }], visited = new Set([start.x + "," + start.y]);
         while (queue.length) {
           const { cell, path } = queue.shift();
           if (cell.x === target.x && cell.y === target.y) return [...path, cell];
           [[0, -1], [1, 0], [0, 1], [-1, 0]].forEach((d, i) => {
             if (!cell.walls[i]) {
-              const nx = cell.x + d[0],
-                ny = cell.y + d[1];
+              const nx = cell.x + d[0], ny = cell.y + d[1];
               if (nx >= 0 && ny >= 0 && nx < this.cols && ny < this.rows && !visited.has(nx + "," + ny)) {
                 visited.add(nx + "," + ny);
                 queue.push({ cell: this.grid[ny][nx], path: [...path, cell] });
@@ -629,19 +394,12 @@
       }
     }
     const intersect = (p, r, q, s) => {
-      const rxs = r.x * s.y - r.y * s.x,
-        qp = { x: q.x - p.x, y: q.y - p.y },
-        t = (qp.x * s.y - qp.y * s.x) / rxs,
-        u = (qp.x * r.y - qp.y * r.x) / rxs;
-      if (rxs && !isNaN(t) && t >= 0 && u >= 0 && u <= 1)
-        return { x: p.x + t * r.x, y: p.y + t * r.y, dist: t };
+      const rxs = r.x * s.y - r.y * s.x, qp = { x: q.x - p.x, y: q.y - p.y }, t = (qp.x * s.y - qp.y * s.x) / rxs, u = (qp.x * r.y - qp.y * r.x) / rxs;
+      if (rxs && !isNaN(t) && t >= 0 && u >= 0 && u <= 1) return { x: p.x + t * r.x, y: p.y + t * r.y, dist: t };
       return null;
     };
     const castRays = (origin, angle, range, segments) => {
-      const points = [],
-        step = 0.005,
-        start = angle - 0.3,
-        end = angle + 0.3;
+      const points = [], step = 0.005, start = angle - 0.3, end = angle + 0.3;
       for (let a = start; a <= end; a += step) {
         const ray = { x: Math.cos(a), y: Math.sin(a) };
         let closest = { x: origin.x + ray.x * range, y: origin.y + ray.y * range, dist: range };
@@ -653,314 +411,108 @@
       }
       return points;
     };
-    const bullets = [],
-      maze = new Maze(),
-      monsters = [],
-      ammoPickups = [];
-    let firstAmmoPicked = false,
-      ammoDialogueActive = false,
-      ammoDialogueTimer = 0;
-    const resolveCollision = entity => {
-      for (const wall of maze.walls) {
-        const cx = Math.max(wall.x, Math.min(entity.x, wall.x + wall.w)),
-          cy = Math.max(wall.y, Math.min(entity.y, wall.y + wall.h)),
-          dx = entity.x - cx,
-          dy = entity.y - cy,
-          dist = Math.hypot(dx, dy);
-        if (dist < entity.radius) {
-          const overlap = entity.radius - dist;
-          entity.x += dx / dist * overlap;
-          entity.y += dy / dist * overlap;
-        }
-      }
-    };
+    const bullets = [], maze = new Maze(), monsters = [], ammoPickups = [];
+    let firstAmmoPicked = false, ammoDialogueActive = false, ammoDialogueTimer = 0;
+    const resolveCollision = entity => { for (const wall of maze.walls) { const cx = Math.max(wall.x, Math.min(entity.x, wall.x + wall.w)), cy = Math.max(wall.y, Math.min(entity.y, wall.y + wall.h)), dx = entity.x - cx, dy = entity.y - cy, dist = Math.hypot(dx, dy); if (dist < entity.radius) { const overlap = entity.radius - dist; entity.x += dx / dist * overlap; entity.y += dy / dist * overlap; } } };
     const startGame = () => {
-      gameState = "playing";
-      score = 0;
-      wave = 1;
-      lastWaveTime = 0;
-      maze.init();
-      player = new Player(...maze.spawn());
-      monsters.length = 0;
-      bullets.length = 0;
-      fogParticles.length = 0;
-      impactParticles.length = 0;
-      ammoPickups.length = 0;
-      damageEffect = 0;
-      shakeIntensity = 0;
-      soundEvents.length = 0;
-      heartbeatSFX.pause();
-      heartbeatSFX.currentTime = 0;
-      firstAmmoPicked = false;
-      ammoDialogueActive = false;
-      ammoDialogueTimer = 0;
-      spawnWave();
+      gameState = "playing"; score = 0; wave = 1; lastWaveTime = 0; maze.init(); player = new Player(...maze.spawn());
+      monsters.length = 0; bullets.length = 0; fogParticles.length = 0; impactParticles.length = 0; ammoPickups.length = 0;
+      damageEffect = 0; shakeIntensity = 0; soundEvents.length = 0; heartbeatSFX.pause(); heartbeatSFX.currentTime = 0;
+      firstAmmoPicked = false; ammoDialogueActive = false; ammoDialogueTimer = 0; spawnWave();
+      if (mobile) { document.getElementById("enter-btn").style.display = "none"; document.getElementById("respawn-btn").style.display = "none"; document.getElementById("dialogue-btn").style.display = "none"; }
     };
     const spawnWave = () => {
       const count = 5 + wave * 2;
       for (let i = 0; i < count; i++) {
         let x, y;
-        do {
-          x = maze.cell * Math.random() * maze.cols;
-          y = maze.cell * Math.random() * maze.rows;
-        } while (maze.collideCircle(x, y, 16));
+        do { x = maze.cell * Math.random() * maze.cols; y = maze.cell * Math.random() * maze.rows; } while (maze.collideCircle(x, y, 16));
         monsters.push(new Monster(x, y, 1 + wave * 0.1));
       }
     };
     const updateGame = () => {
-      if (player.health <= 0)
-        gameState = "gameover";
+      if (player.health <= 0) { gameState = "gameover"; if (mobile) document.getElementById("respawn-btn").style.display = "block"; }
       if (monsters.length === 0 && gameState === "playing") {
-        if (Date.now() - lastWaveTime > waveDelay) {
-          wave++;
-          spawnWave();
-          lastWaveTime = Date.now();
-        } else if (lastWaveTime === 0) lastWaveTime = Date.now();
+        if (Date.now() - lastWaveTime > waveDelay) { wave++; spawnWave(); lastWaveTime = Date.now(); }
+        else if (lastWaveTime === 0) lastWaveTime = Date.now();
       }
-      if (player.health < 40 && !heartbeatSFX.playing) { heartbeatSFX.play(); }
+      if (player.health < 40 && heartbeatSFX.paused) { heartbeatSFX.play(); }
       if (player.health >= 40) { heartbeatSFX.pause(); heartbeatSFX.currentTime = 0; }
       if (gameState === "playing" && Math.random() < 0.0005 && ammoPickups.length === 0) {
-        let ax, ay;
-        do {
-          ax = Math.random() * cw;
-          ay = Math.random() * ch;
-        } while (maze.collideCircle(ax, ay, 12));
+        let ax, ay; do { ax = Math.random() * cw; ay = Math.random() * ch; } while (maze.collideCircle(ax, ay, 12));
         ammoPickups.push(new AmmoPickup(ax, ay));
       }
     };
-    const drawUI = () => {
-      ctx.fillStyle = "#fff";
-      ctx.font = "20px 'Courier New', monospace";
-      ctx.fillText("Score: " + score, 20, 30);
-      ctx.fillText("Wave: " + wave, 20, 60);
-      ctx.fillStyle = "#f00";
-      ctx.fillText("Ammo: " + player.ammo, cw - 140, 30);
-    };
-    const drawMenu = () => {
-      ctx.fillStyle = "#fff";
-      ctx.font = "40px 'Courier New', monospace";
-      ctx.textAlign = "center";
-      ctx.fillText("The Corridors", cw / 2, ch / 2 - 40);
-      ctx.font = "20px 'Courier New', monospace";
-      ctx.fillText("Press Enter to start", cw / 2, ch / 2 + 20);
-    };
-    const drawGameOver = () => {
-      ctx.fillStyle = "#fff";
-      ctx.font = "40px 'Courier New', monospace";
-      ctx.textAlign = "center";
-      ctx.fillText("You died...", cw / 2, ch / 2 - 40);
-      ctx.font = "20px 'Courier New', monospace";
-      ctx.fillText("Score: " + score, cw / 2, ch / 2);
-      ctx.fillText("Restart?", cw / 2, ch / 2 + 40);
-    };
-    const drawDialogueOverlay = () => {
-      const boxHeight = 150;
-      ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-      ctx.fillRect(0, ch - boxHeight, cw, boxHeight);
-      const imgWidth = 100,
-        imgHeight = 100;
-      ctx.drawImage(characterImage, 20, ch - boxHeight + (boxHeight - imgHeight) / 2, imgWidth, imgHeight);
-      ctx.fillStyle = "#fff";
-      ctx.font = "20px 'Courier New', monospace";
-      ctx.textAlign = "left";
-      const textX = 20 + imgWidth + 20,
-        textY = ch - boxHeight + 50;
-      ctx.fillText(dialogueLines[dialogueIndex], textX, textY);
-      ctx.font = "16px 'Courier New', monospace";
-      ctx.fillText("Press Enter to continue", textX, textY + 30);
-    };
-    const drawTutorialOverlay = () => {
-      const boxHeight = 120;
-      ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-      ctx.fillRect(0, ch - boxHeight, cw, boxHeight);
-      ctx.fillStyle = "#fff";
-      ctx.font = "20px 'Courier New', monospace";
-      ctx.textAlign = "left";
-      const textX = 20,
-        textY = ch - boxHeight + 40;
-      ctx.fillText("F to turn on flashlight", textX, textY);
-      ctx.fillText("Space or mouse buttons to shoot", textX, textY + 30);
-      ctx.font = "16px 'Courier New', monospace";
-      ctx.fillText("Press Enter to start", textX, textY + 60);
-    };
-    const drawAmmoDialogue = () => {
-      ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
-      ctx.fillRect(0, ch - 100, cw, 100);
-      ctx.fillStyle = "#fff";
-      ctx.font = "22px 'Courier New', monospace";
-      ctx.textAlign = "center";
-      ctx.fillText("You found extra ammo. Keep fighting...", cw / 2, ch - 40);
-    };
+    const drawUI = () => { ctx.fillStyle = "#fff"; ctx.font = "20px Courier New, monospace"; ctx.fillText("Score:" + score, 20, 30); ctx.fillText("Wave:" + wave, 20, 60); ctx.fillStyle = "#f00"; ctx.fillText("Ammo:" + player.ammo, cw - 140, 30); };
+    const drawMenu = () => { ctx.fillStyle = "#fff"; ctx.font = "40px Courier New, monospace"; ctx.textAlign = "center"; ctx.fillText("The Corridors", cw / 2, ch / 2 - 40); ctx.font = "20px Courier New, monospace"; ctx.fillText("Press Enter to start", cw / 2, ch / 2 + 20); if (mobile) document.getElementById("enter-btn").style.display = "block"; };
+    const drawGameOver = () => { ctx.fillStyle = "#fff"; ctx.font = "40px Courier New, monospace"; ctx.textAlign = "center"; ctx.fillText("Youdied...", cw / 2, ch / 2 - 40); ctx.font = "20px Courier New, monospace"; ctx.fillText("Score:" + score, cw / 2, ch / 2); ctx.fillText("Restart?", cw / 2, ch / 2 + 40); if (mobile) document.getElementById("respawn-btn").style.display = "block"; };
+    const drawDialogueOverlay = () => { const boxHeight = 150; ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.fillRect(0, ch - boxHeight, cw, boxHeight); const imgWidth = 100, imgHeight = 100; ctx.drawImage(characterImage, 20, ch - boxHeight + (boxHeight - imgHeight) / 2, imgWidth, imgHeight); ctx.fillStyle = "#fff"; ctx.font = "20px Courier New, monospace"; ctx.textAlign = "left"; const textX = 20 + imgWidth + 20, textY = ch - boxHeight + 50; ctx.fillText(dialogueLines[dialogueIndex], textX, textY); ctx.font = "16px Courier New, monospace"; ctx.fillText("Press Enter to continue", textX, textY + 30); }
+    const drawTutorialOverlay = () => { const boxHeight = 120; ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.fillRect(0, ch - boxHeight, cw, boxHeight); ctx.fillStyle = "#fff"; ctx.font = "20px Courier New, monospace"; ctx.textAlign = "left"; const textX = 20, textY = ch - boxHeight + 40; ctx.fillText("F to turn on flashlight", textX, textY); ctx.fillText("Space or tap shoot button to shoot", textX, textY + 30); ctx.font = "16px Courier New, monospace"; ctx.fillText("Press Enter to start", textX, textY + 60); }
+    const drawAmmoDialogue = () => { ctx.fillStyle = "rgba(0,0,0,0.8)"; ctx.fillRect(0, ch - 100, cw, 100); ctx.fillStyle = "#fff"; ctx.font = "22px Courier New, monospace"; ctx.textAlign = "center"; ctx.fillText("You found extra ammo. Keep fighting...", cw / 2, ch - 40); };
     const loop = () => {
       ctx.clearRect(0, 0, cw, ch);
-      if (gameState === "menu") {
-        drawMenu();
-        requestAnimationFrame(loop);
-        return;
-      }
-      if (gameState === "gameover") {
-        drawGameOver();
-        requestAnimationFrame(loop);
-        return;
-      }
-      ctx.fillStyle = "#111";
-      ctx.fillRect(0, 0, cw, ch);
-      const halfW = cw / (2 * zoom),
-        halfH = ch / (2 * zoom),
-        vp = { minX: camera.x - halfW, maxX: camera.x + halfW, minY: camera.y - halfH, maxY: camera.y + halfH };
+      if (gameState === "menu") { drawMenu(); requestAnimationFrame(loop); return; }
+      if (gameState === "gameover") { drawGameOver(); requestAnimationFrame(loop); return; }
+      ctx.fillStyle = "#111"; ctx.fillRect(0, 0, cw, ch);
+      const halfW = cw / (2 * zoom), halfH = ch / (2 * zoom), vp = { minX: camera.x - halfW, maxX: camera.x + halfW, minY: camera.y - halfH, maxY: camera.y + halfH };
       const anticipation = 10;
       camera.x = lerp(camera.x, player.x + player.vx * anticipation, 0.1);
       camera.y = lerp(camera.y, player.y + player.vy * anticipation, 0.1);
-      if (shakeIntensity > 0) {
-        camera.x += Math.random() * shakeIntensity - shakeIntensity / 2;
-        camera.y += Math.random() * shakeIntensity - shakeIntensity / 2;
-        shakeIntensity *= 0.95;
-      }
-      ctx.save();
-      ctx.translate(cw / 2, ch / 2);
-      ctx.scale(zoom, zoom);
-      ctx.translate(-camera.x, -camera.y);
+      if (shakeIntensity > 0) { camera.x += Math.random() * shakeIntensity - shakeIntensity / 2; camera.y += Math.random() * shakeIntensity - shakeIntensity / 2; shakeIntensity *= 0.95; }
+      ctx.save(); ctx.translate(cw / 2, ch / 2); ctx.scale(zoom, zoom); ctx.translate(-camera.x, -camera.y);
       maze.draw(vp);
-      monsters.forEach((m, i) => {
-        if (gameState === "playing") m.update();
-        m.draw();
-        if (m.health <= 0) {
-          monsters.splice(i, 1);
-          score += 10;
-          Array.from({ length: 20 }).forEach(() => {
-            impactParticles.push(new ImpactParticle(m.x, m.y,
-              (Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4, 40));
-          });
-        }
-      });
-      bullets.forEach((b, i) => {
-        if (gameState === "playing") b.update();
-        monsters.forEach(m => {
-          if (Math.hypot(b.x - m.x, b.y - m.y) < b.radius + m.radius) {
-            m.health -= 20;
-            b.life = 0;
-            hitSFX.currentTime = 0;
-            hitSFX.play();
-            Array.from({ length: 12 }).forEach(() => {
-              impactParticles.push(new ImpactParticle(b.x, b.y,
-                (Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4, 30));
-            });
-          }
-        });
-        if (b.life <= 0) bullets.splice(i, 1);
-      });
-      bullets.forEach(b => {
-        if (b.x < vp.minX || b.x > vp.maxX || b.y < vp.minY || b.y > vp.maxY)
-          return;
-        b.draw();
-      });
-      muzzleFlashes.forEach((m, i) => {
-        m.update();
-        if (m.life <= 0)
-          muzzleFlashes.splice(i, 1);
-        else m.draw();
-      });
-      if (gameState === "playing") {
-        player.update();
-        resolveCollision(player);
-      }
-      monsters.forEach(m => {
-        const d = Math.hypot(m.x - player.x, m.y - player.y);
-        if (d < player.radius + m.radius && d !== 0) {
-          const overlap = (player.radius + m.radius - d),
-            nx = (m.x - player.x) / d,
-            ny = (m.y - player.y) / d;
-          m.x += nx * overlap * 0.5;
-          m.y += ny * overlap * 0.5;
-        }
-      });
+      monsters.forEach((m, i) => { if (gameState === "playing") m.update(); m.draw(); if (m.health <= 0) { monsters.splice(i, 1); score += 10; Array.from({ length: 20 }).forEach(() => { impactParticles.push(new ImpactParticle(m.x, m.y, (Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4, 40)); }); } });
+      bullets.forEach((b, i) => { if (gameState === "playing") b.update(); monsters.forEach(m => { if (Math.hypot(b.x - m.x, b.y - m.y) < b.radius + m.radius) { m.health -= 20; b.life = 0; hitSFX.currentTime = 0; hitSFX.play(); Array.from({ length: 12 }).forEach(() => { impactParticles.push(new ImpactParticle(b.x, b.y, (Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4, 30)); }); } }); if (b.life <= 0) bullets.splice(i, 1); });
+      bullets.forEach(b => { if (b.x < vp.minX || b.x > vp.maxX || b.y < vp.minY || b.y > vp.maxY) return; b.draw(); });
+      muzzleFlashes.forEach((m, i) => { m.update(); if (m.life <= 0) muzzleFlashes.splice(i, 1); else m.draw(); });
+      if (gameState === "playing") { player.update(); resolveCollision(player); }
+      monsters.forEach(m => { const d = Math.hypot(m.x - player.x, m.y - player.y); if (d < player.radius + m.radius && d !== 0) { const overlap = (player.radius + m.radius - d), nx = (m.x - player.x) / d, ny = (m.y - player.y) / d; m.x += nx * overlap * 0.5; m.y += ny * overlap * 0.5; } });
       if (flash) {
-        const segs = maze.segments(),
-          origin = player.origin(),
-          pts = castRays(origin, player.dir, 300, segs);
-        ctx.save();
-        ctx.globalCompositeOperation = "lighter";
+        const segs = maze.segments(), origin = player.origin(), pts = castRays(origin, player.dir, 300, segs);
+        ctx.save(); ctx.globalCompositeOperation = "lighter";
         const grad = ctx.createRadialGradient(origin.x, origin.y, 0, origin.x, origin.y, 300);
-        grad.addColorStop(0, "rgba(160,160,160,0.6)");
-        grad.addColorStop(0.5, "rgba(180,180,180,0.3)");
-        grad.addColorStop(1, "rgba(120,120,120,0)");
-        ctx.fillStyle = grad;
-        ctx.beginPath();
-        ctx.moveTo(origin.x, origin.y);
-        pts.forEach(p => ctx.lineTo(p.x, p.y));
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
+        grad.addColorStop(0, "rgba(160,160,160,0.6)"); grad.addColorStop(0.5, "rgba(180,180,180,0.3)"); grad.addColorStop(1, "rgba(120,120,120,0)");
+        ctx.fillStyle = grad; ctx.beginPath(); ctx.moveTo(origin.x, origin.y); pts.forEach(p => ctx.lineTo(p.x, p.y)); ctx.closePath(); ctx.fill(); ctx.restore();
       }
       player.draw();
-      ammoPickups.forEach((ap, i) => {
-        const d = Math.hypot(player.x - ap.x, player.y - ap.y);
-        if (d < player.radius + ap.radius) {
-          player.ammo += 10;
-          if (!firstAmmoPicked) {
-            ammoDialogueActive = true;
-            ammoDialogueTimer = 180;
-            firstAmmoPicked = true;
-          }
-          ammoPickups.splice(i, 1);
-        } else {
-          ap.draw();
-        }
-      });
+      ammoPickups.forEach((ap, i) => { const d = Math.hypot(player.x - ap.x, player.y - ap.y); if (d < player.radius + ap.radius) { player.ammo += 10; if (!firstAmmoPicked) { ammoDialogueActive = true; ammoDialogueTimer = 180; firstAmmoPicked = true; } ammoPickups.splice(i, 1); } else { ap.draw(); } });
       if (gameState === "playing") {
-        fogParticles.forEach((p, i) => {
-          p.update();
-          if (p.life <= 0) fogParticles.splice(i, 1);
-          else p.draw();
-        });
-        impactParticles.forEach((p, i) => {
-          p.update();
-          if (p.life <= 0) impactParticles.splice(i, 1);
-          else p.draw();
-        });
+        fogParticles.forEach((p, i) => { p.update(); if (p.life <= 0) fogParticles.splice(i, 1); else p.draw(); });
+        impactParticles.forEach((p, i) => { p.update(); if (p.life <= 0) impactParticles.splice(i, 1); else p.draw(); });
       }
-      if (Math.random() < 0.9)
-        fogParticles.push(new Particle(player.x + Math.random() * 1400 - 200, player.y + Math.random() * 1400 - 200, (Math.random() - 0.5) * 0.3, (Math.random() - 0.5) * 0.3, 150));
+      if (Math.random() < 0.9) fogParticles.push(new Particle(player.x + Math.random() * 1400 - 200, player.y + Math.random() * 1400 - 200, (Math.random() - 0.5) * 0.3, (Math.random() - 0.5) * 0.3, 150));
       ctx.restore();
-      if (damageEffect > 0) {
-        ctx.fillStyle = `rgba(255,0,0,${damageEffect * 0.3})`;
-        ctx.fillRect(0, 0, cw, ch);
-        damageEffect *= 0.95;
-      }
-      bloomCanvas.width = cw;
-      bloomCanvas.height = ch;
-      bloomCtx.filter = "blur(8px)";
-      bloomCtx.clearRect(0, 0, cw, ch);
-      bloomCtx.drawImage(canvas, 0, 0);
-      rtxCanvas.width = cw;
-      rtxCanvas.height = ch;
-      rtxCtx.filter = "blur(16px)";
-      rtxCtx.clearRect(0, 0, cw, ch);
-      rtxCtx.drawImage(canvas, 0, 0);
-      ctx.globalAlpha = 0.3;
-      ctx.drawImage(bloomCanvas, 0, 0);
-      ctx.globalAlpha = 0.2;
-      ctx.globalCompositeOperation = "lighter";
-      ctx.drawImage(rtxCanvas, 0, 0);
-      ctx.globalAlpha = 1;
-      ctx.globalCompositeOperation = "source-over";
-      drawUI();
-      if (ammoDialogueActive) {
-        drawAmmoDialogue();
-        ammoDialogueTimer--;
-        if (ammoDialogueTimer <= 0) ammoDialogueActive = false;
-      }
+      if (damageEffect > 0) { ctx.fillStyle = `rgba(255,0,0,${damageEffect * 0.3})`; ctx.fillRect(0, 0, cw, ch); damageEffect *= 0.95; }
+      bloomCanvas.width = cw; bloomCanvas.height = ch; bloomCtx.filter = "blur(8px)"; bloomCtx.clearRect(0, 0, cw, ch); bloomCtx.drawImage(canvas, 0, 0);
+      rtxCanvas.width = cw; rtxCanvas.height = ch; rtxCtx.filter = "blur(16px)"; rtxCtx.clearRect(0, 0, cw, ch); rtxCtx.drawImage(canvas, 0, 0);
+      ctx.globalAlpha = 0.3; ctx.drawImage(bloomCanvas, 0, 0); ctx.globalAlpha = 0.2; ctx.globalCompositeOperation = "lighter"; ctx.drawImage(rtxCanvas, 0, 0);
+      ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over"; drawUI();
+      if (ammoDialogueActive) { drawAmmoDialogue(); ammoDialogueTimer--; if (ammoDialogueTimer <= 0) ammoDialogueActive = false; }
       if (gameState === "playing") updateGame();
       if (player.health <= 0) gameState = "gameover";
-      if (gameState === "dialogue") {
-        drawDialogueOverlay();
-      }
-      if (gameState === "tutorial") {
-        drawTutorialOverlay();
+      if (gameState === "dialogue") { drawDialogueOverlay(); }
+      if (gameState === "tutorial") { if (!mobile) { drawTutorialOverlay(); } else { gameState = "playing" } }
+      if (mobile) {
+        if (gameState === "dialogue") document.getElementById("dialogue-btn").style.display = "block";
+        else document.getElementById("dialogue-btn").style.display = "none";
       }
       requestAnimationFrame(loop);
     };
     let player;
+    const leftJoystick = { active: false, identifier: null, start: { x: 0, y: 0 }, delta: { x: 0, y: 0 } };
+    const rightJoystick = { active: false, identifier: null, start: { x: 0, y: 0 }, delta: { x: 0, y: 0 } };
+    const leftJoystickEl = document.getElementById("left-joystick");
+    const rightJoystickEl = document.getElementById("right-joystick");
+    leftJoystickEl.addEventListener("touchstart", e => { e.preventDefault(); const touch = e.changedTouches[0]; leftJoystick.active = true; leftJoystick.identifier = touch.identifier; leftJoystick.start = { x: touch.clientX, y: touch.clientY }; leftJoystick.delta = { x: 0, y: 0 }; });
+    leftJoystickEl.addEventListener("touchmove", e => { e.preventDefault(); for (const touch of e.changedTouches) { if (touch.identifier === leftJoystick.identifier) { const dx = touch.clientX - leftJoystick.start.x, dy = touch.clientY - leftJoystick.start.y; const dist = Math.hypot(dx, dy), max = 40; if (dist > max) { const ratio = max / dist; leftJoystick.delta = { x: dx * ratio, y: dy * ratio }; } else { leftJoystick.delta = { x: dx, y: dy }; } leftJoystickEl.querySelector(".joystick-thumb").style.transform = `translate(${leftJoystick.delta.x}px, ${leftJoystick.delta.y}px)`; keys.w = leftJoystick.delta.y < -10; keys.s = leftJoystick.delta.y > 10; keys.a = leftJoystick.delta.x < -10; keys.d = leftJoystick.delta.x > 10; } } });
+    leftJoystickEl.addEventListener("touchend", e => { e.preventDefault(); for (const touch of e.changedTouches) { if (touch.identifier === leftJoystick.identifier) { leftJoystick.active = false; leftJoystick.delta = { x: 0, y: 0 }; leftJoystickEl.querySelector(".joystick-thumb").style.transform = `translate(0px, 0px)`; keys.w = keys.a = keys.s = keys.d = false; } } });
+    rightJoystickEl.addEventListener("touchstart", e => { e.preventDefault(); const touch = e.changedTouches[0]; rightJoystick.active = true; rightJoystick.identifier = touch.identifier; rightJoystick.start = { x: touch.clientX, y: touch.clientY }; rightJoystick.delta = { x: 0, y: 0 }; });
+    rightJoystickEl.addEventListener("touchmove", e => { e.preventDefault(); for (const touch of e.changedTouches) { if (touch.identifier === rightJoystick.identifier) { const dx = touch.clientX - rightJoystick.start.x, dy = touch.clientY - rightJoystick.start.y; const dist = Math.hypot(dx, dy), max = 40; if (dist > max) { const ratio = max / dist; rightJoystick.delta = { x: dx * ratio, y: dy * ratio }; } else { rightJoystick.delta = { x: dx, y: dy }; } rightJoystickEl.querySelector(".joystick-thumb").style.transform = `translate(${rightJoystick.delta.x}px, ${rightJoystick.delta.y}px)`; } } });
+    rightJoystickEl.addEventListener("touchend", e => { e.preventDefault(); for (const touch of e.changedTouches) { if (touch.identifier === rightJoystick.identifier) { rightJoystick.active = false; rightJoystick.delta = { x: 0, y: 0 }; rightJoystickEl.querySelector(".joystick-thumb").style.transform = `translate(0px, 0px)`; } } });
+    document.getElementById("flashlight-btn").addEventListener("touchstart", e => { e.preventDefault(); flash = !flash; });
+    document.getElementById("shoot-btn").addEventListener("touchstart", e => { e.preventDefault(); if (gameState === "playing") player.shoot(); });
+    document.getElementById("enter-btn").addEventListener("touchstart", e => { e.preventDefault(); startGame(); bgMusic.play(); gameState = "dialogue"; dialogueIndex = 0; dialogueSFX.currentTime = 0; dialogueSFX.play(); document.getElementById("enter-btn").style.display = "none"; });
+    document.getElementById("respawn-btn").addEventListener("touchstart", e => { e.preventDefault(); startGame(); });
+    document.getElementById("dialogue-btn").addEventListener("touchstart", e => { e.preventDefault(); if (gameState === "dialogue") { dialogueIndex++; if (dialogueIndex >= dialogueLines.length) { gameState = "tutorial"; } else { dialogueSFX.currentTime = 0; dialogueSFX.play(); } } });
     loop();
   </script>
 </body>
