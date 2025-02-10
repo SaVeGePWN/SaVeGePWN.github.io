@@ -796,7 +796,6 @@ const canvas = document.getElementById("game"), ctx = canvas.getContext("2d"), m
       if(lPam!==null){
           var diff = player.ammo - lPam;
           if(diff > ammoPickupValue || diff < -1) {
-              alert("Ammo cheat detected: irregular increase");
               cheater = true;
           }
       }
@@ -805,7 +804,6 @@ const canvas = document.getElementById("game"), ctx = canvas.getContext("2d"), m
           var hDiff = player.health - lastPlayerHealth;
           var aHinc = 40;
           if(hDiff > aHinc){
-              alert("Health cheat detected: irregular increase");
               cheater = true;
           }
       }
