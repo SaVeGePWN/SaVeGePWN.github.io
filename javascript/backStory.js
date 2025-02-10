@@ -848,7 +848,7 @@ const canvas = document.getElementById("game"), ctx = canvas.getContext("2d"), m
   const drawGameOver = () => {
       ctx.fillStyle = "#fff", ctx.font = "40px Courier New, monospace", ctx.textAlign = "center", 
       ctx.fillText("You Died...", cw / 2, ch / 2 - 40), ctx.font = "20px Courier New, monospace", 
-      ctx.fillText("Score:" + score, cw / 2, ch / 2), ctx.fillText("Restart?", cw / 2, ch / 2 + 40);
+      ctx.fillText("Score: " + score, cw / 2, ch / 2), ctx.fillText("Restart?", cw / 2, ch / 2 + 40);
   };
   
   function showDialogue() {
