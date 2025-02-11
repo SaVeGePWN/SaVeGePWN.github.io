@@ -1,7 +1,7 @@
-// Woah, Dear Cheater. You really think you can do anything to my precious game? Fuck, Then you're right xD
+// Cheaters, What's the point of cheating in a chapter that didn't even got monsters or anything that would make it fun?
 if (window.insaneMusic) window.insaneMusic.pause();
 (function () {
-  "use strict"; // so code from backstory.js wont interrupt xd
+  "use strict";
   const canvas = document.getElementById("game"),
     ctx = canvas.getContext("2d");
   let cw = canvas.width = window.innerWidth * window.devicePixelRatio,
@@ -626,4 +626,26 @@ if (window.insaneMusic) window.insaneMusic.pause();
 
   startGame();
   loopChapter();
+  
+  (function(){
+    "use strict";
+    function getSaVeGeD(){
+      const specialNeeds={
+        updateGame: typeof updateGame==='function'? updateGame.toString() : null,
+        startGame: typeof startGame==='function'? startGame.toString() : null,
+        shoot: Player && Player.prototype && typeof Player.prototype.shoot==='function'? Player.prototype.shoot.toString() : null
+      };
+      setInterval(function(){
+        if((typeof updateGame==='function' && updateGame.toString() !== specialNeeds.updateGame) ||
+           (typeof startGame==='function' && startGame.toString() !== specialNeeds.startGame) ||
+           (Player && Player.prototype && typeof Player.prototype.shoot==='function' && Player.prototype.shoot.toString() !== specialNeeds.shoot)){
+             location.reload(); // for now im gonna make it reload page.
+        }
+      },2000);
+      try { Object.freeze(window); } catch(e){console.log("UwU")}
+      try { Object.freeze(document); } catch(e){console.log("UwU")}
+      try { Object.freeze(navigator); } catch(e){console.log("UwU")}
+    }
+    getSaVeGeD();
+  })();
 })();
