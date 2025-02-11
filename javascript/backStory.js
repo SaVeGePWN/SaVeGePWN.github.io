@@ -1,4 +1,5 @@
-// Woah, Dear Cheater. You really think you can do anything to my precious game? Fuck, Then you're right xD
+// Cheaters, I expected you at last, I'm sorry but i made it harder now >:)
+(function(){
 const canvas = document.getElementById("game"), ctx = canvas.getContext("2d"), mainMenuEl = document.getElementById("mainMenu"), creditsEl = document.getElementById("credits"), playButton = document.getElementById("playButton"), creditsButton = document.getElementById("creditsButton"), backButton = document.getElementById("cButton"), savesButton = document.getElementById("savesButton"), savesMenu = document.getElementById("savesMenu"), loadSaveButton = document.getElementById("loadSaveButton"), eraseSaveButton = document.getElementById("eraseSaveButton"), closeSavesButton = document.getElementById("closeSavesButton"), gameUIEl = document.getElementById("gameUI"), scoreDisplay = document.getElementById("scoreDisplay"), ammoDisplay = document.getElementById("ammoDisplay"), settingsButton = document.getElementById("settingsButton"), closeSettingsButton = document.getElementById("closeSettingsButton"), settingsMenu = document.getElementById("settingsMenu"), graphicsQualitySelect = document.getElementById("graphicsQuality"), displayModeSelect = document.getElementById("displayMode"), mainMenuMusic = new Audio("assets/mainMenu.mp3"), bgMusic = (mainMenuMusic.loop = !0, 
   mainMenuMusic.volume = 1, new Audio("assets/ambient.mp3")), ambientSounds = (bgMusic.loop = !0, 
   bgMusic.volume = .6, [ new Audio("assets/ambient2.mp3"), new Audio("assets/ambient3.mp3"), new Audio("assets/ambient4.mp3"), new Audio("assets/ambient5.mp3") ]), shootSFX = new Audio("assets/gunShot.mp3"), hitSFX = new Audio("assets/hit.mp3"), walkSFX = new Audio("assets/walk.mp3"), damageSFX = new Audio("assets/damage.mp3"), heartbeatSFX = new Audio("assets/heartBeat.mp3"), dialogueSFX = new Audio("assets/blip.mp3"), jumpscareSFX = new Audio("assets/jumpscare.mp3"), reloadSFX = new Audio("assets/reload.mp3"), ammoSFX = new Audio("assets/reload.mp3"), healthKitSFX = new Audio("assets/healthkit.mp3"), runningSFX = new Audio("assets/run.mp3"), exhaustedSFX = (runningSFX.volume = 1, 
@@ -12,9 +13,17 @@ const canvas = document.getElementById("game"), ctx = canvas.getContext("2d"), m
   }
   
   function oPlayBc() {
-      mainMenuEl.style.display = "none", creditsEl.style.display = "none", gameUIEl.style.display = "block", 
-      startGame(), bClick.play(), mainMenuMusic.pause(), gameState = "dialogue", dialogueIndex = 0, 
-      dialogueSFX.currentTime = 0, dialogueSFX.play();
+      mainMenuEl.style.display = "none";
+      creditsEl.style.display = "none";
+      gameUIEl.style.display = "block";
+      startGame();
+      bClick.play();
+      mainMenuMusic.pause();
+      bgMusic.play();
+      gameState = "dialogue";
+      dialogueIndex = 0;
+      dialogueSFX.currentTime = 0;
+      dialogueSFX.play();
   }
   
   function oCreditsBc() {
@@ -22,7 +31,11 @@ const canvas = document.getElementById("game"), ctx = canvas.getContext("2d"), m
   }
   
   function oBackBc() {
-      creditsEl.style.display = "none", mainMenuEl.style.display = "flex", bClick.play();
+      creditsEl.style.display = "none";
+      mainMenuEl.style.display = "flex";
+      bgMusic.pause();
+      mainMenuMusic.play();
+      bClick.play();
   }
   
   function oSettingsBc() {
@@ -323,8 +336,7 @@ const canvas = document.getElementById("game"), ctx = canvas.getContext("2d"), m
               keys.w || keys.s || keys.a || keys.d ? l ? runningSFX.paused && (runningSFX.play(), 
               walkSFX.paused || (walkSFX.pause(), walkSFX.currentTime = 0)) : walkSFX.paused && (walkSFX.play(), 
               runningSFX.paused || (runningSFX.pause(), runningSFX.currentTime = 0)) : (walkSFX.paused || (walkSFX.pause(), 
-              walkSFX.currentTime = 0), runningSFX.paused || (runningSFX.pause(), 
-              runningSFX.currentTime = 0));
+              walkSFX.currentTime = 0), runningSFX.paused || (runningSFX.pause(), runningSFX.currentTime = 0));
               var l = t - this.x, n = e - this.y, l = (this.x += l, this.y += n, resolveCollision(this), 
               this.vx = this.x - i, this.vy = this.y - s, mouse.x - cw / 2), n = mouse.y - ch / 2;
               0 == l && 0 == n || (this.dir = Math.atan2(n, l));
@@ -789,13 +801,14 @@ const canvas = document.getElementById("game"), ctx = canvas.getContext("2d"), m
   var lastPlayerHealth = null;
   var ammoPickupValue = 20;
   let cheater = false;
-  function antiCheat(){
+  function antiCheat(){ // <- this is the anticheat, focus on bypassing this (its totally the anticheat)
       if(!player || typeof player.ammo==='undefined'){
           return;
       }
       if(lPam!==null){
           var diff = player.ammo - lPam;
           if(diff > ammoPickupValue || diff < -1) {
+              alert("Ammo cheat detected: irregular increase");
               cheater = true;
           }
       }
@@ -804,6 +817,7 @@ const canvas = document.getElementById("game"), ctx = canvas.getContext("2d"), m
           var hDiff = player.health - lastPlayerHealth;
           var aHinc = 40;
           if(hDiff > aHinc){
+              alert("Health cheat detected: irregular increase");
               cheater = true;
           }
       }
@@ -848,7 +862,7 @@ const canvas = document.getElementById("game"), ctx = canvas.getContext("2d"), m
   const drawGameOver = () => {
       ctx.fillStyle = "#fff", ctx.font = "40px Courier New, monospace", ctx.textAlign = "center", 
       ctx.fillText("You Died...", cw / 2, ch / 2 - 40), ctx.font = "20px Courier New, monospace", 
-      ctx.fillText("Score: " + score, cw / 2, ch / 2), ctx.fillText("Restart?", cw / 2, ch / 2 + 40);
+      ctx.fillText("Score:" + score, cw / 2, ch / 2), ctx.fillText("Restart?", cw / 2, ch / 2 + 40);
   };
   
   function showDialogue() {
@@ -1057,3 +1071,26 @@ const canvas = document.getElementById("game"), ctx = canvas.getContext("2d"), m
   }
   
   loop();
+})();
+
+(function(){
+"use strict";
+function getSaVeGeD(){
+  const specialNeeds = {
+    updateGame: typeof updateGame === 'function' ? updateGame.toString() : null,
+    startGame: typeof startGame === 'function' ? startGame.toString() : null,
+    shoot: (typeof Player !== 'undefined' && Player.prototype && typeof Player.prototype.shoot === 'function') ? Player.prototype.shoot.toString() : null
+  };
+  setInterval(function(){
+    if ((typeof updateGame === 'function' && updateGame.toString() !== specialNeeds.updateGame) ||
+        (typeof startGame === 'function' && startGame.toString() !== specialNeeds.startGame) ||
+        (typeof Player !== 'undefined' && Player.prototype && typeof Player.prototype.shoot === 'function' && Player.prototype.shoot.toString() !== specialNeeds.shoot)) {
+         location.reload(); // for now im gonna make it reload page.
+    }
+  },2000);
+  try { Object.freeze(window); } catch(e){console.log("UwU")}
+  try { Object.freeze(document); } catch(e){console.log("UwU")}
+  try { Object.freeze(navigator); } catch(e){console.log("UwU")}
+}
+getSaVeGeD();
+})();
