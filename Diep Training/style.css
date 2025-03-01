@@ -1,0 +1,13 @@
+body, html {
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+	background: radial-gradient(circle, #555, #222);
+}
+#gameCanvas {
+	display: block;
+	background: #f0f0f0;
+	width: 100vw;
+	height: 100vh;
+	box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
